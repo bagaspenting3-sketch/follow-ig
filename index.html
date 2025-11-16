@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Follow to Unlock</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+            max-width: 450px;
+            width: 100%;
+            overflow: hidden;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .lock-container {
+            text-align: center;
+            padding: 50px 40px;
+            position: relative;
+        }
+
+        .lock-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .lock-icon svg {
+            width: 50px;
+            height: 50px;
+            fill: white;
+        }
+
+        .lock-icon.unlocked {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .lock-icon.checking {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 35px;
+            line-height: 1.6;
+        }
+
+        .content-preview {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            border: 2px dashed #ddd;
+            position: relative;
+            filter: blur(3px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .content-preview.unlocked {
+            filter: blur(0);
+            border: 2px solid #38ef7d;
+            pointer-events: auto;
+        }
+
+        .blur-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+        }
+
+        .blur-overlay span {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .hidden-link {
+            display: block;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            word-break: break-all;
+        }
+
+        .hidden-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-instagram {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            color: white;
+            box-shadow: 0 8px 25px rgba(188, 24, 136, 0.3);
+        }
+
+        .btn-instagram:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(188, 24, 136, 0.4);
+        }
+
+        .btn-verify {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-verify:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .instagram-icon {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 25px;
+            font-size: 14px;
+            color: #1565c0;
+            text-align: center;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #856404;
+            text-align: center;
+            border: 2px solid #ffc107;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+            animation: shake 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .checking-progress {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .checking-text {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .checkmark {
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .follower-count {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .follower-count strong {
+            color: #667eea;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="lock-container">
+            <div class="lock-icon" id="lockIcon">
+                <svg id="lockSvg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+                </svg>
+            </div>
+
+            <h1 id="mainTitle">🔒 Content Locked</h1>
+            <p class="subtitle" id="subtitle">
+                Follow us on Instagram to unlock exclusive content and access the link below!
+            </p>
+
+            <div id="successMsg" class="success-message hidden">
+                <span class="checkmark">✓</span> <span id="successText">Verification successful! Content unlocked!</span>
+            </div>
+
+            <div id="errorMsg" class="error-message hidden">
+                <span>✗</span> <span id="errorText">Not following yet! Please follow us first.</span>
+            </div>
+
+            <div id="checkingProgress" class="checking-progress hidden">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <strong>🔍 Checking Follow Status...</strong>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="checking-text" id="checkingText">Connecting to Instagram API...</div>
+            </div>
+
+            <div class="content-preview" id="contentPreview">
+                <div class="blur-overlay" id="blurOverlay">
+                    <span>🔒 LOCKED</span>
+                </div>
+                <a href="https://example.com/your-exclusive-link" class="hidden-link" id="exclusiveLink" target="_blank">
+                    https://example.com/your-exclusive-link
+                </a>
+            </div>
+
+            <button class="btn btn-instagram" id="followBtn" onclick="followInstagram()">
+                <svg class="instagram-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
+                Follow @<span id="igUsername">your_username</span>
+            </button>
+
+            <button class="btn btn-verify" id="verifyBtn" onclick="verifyFollow()" disabled>
+                <span>🔍</span> Verify Follow Status
+            </button>
+
+            <div class="info-box">
+                <strong>📋 Instructions:</strong><br>
+                1. Click "Follow" button above<br>
+                2. Follow our Instagram account<br>
+                3. Come back and click "Verify" button<br>
+                4. Wait for verification process
+            </div>
+
+            <div class="warning-box hidden" id="warningBox">
+                ⚠️ Our system detected you haven't followed yet. Please follow first!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION - Change these values
+        const INSTAGRAM_USERNAME = 'bg4s.t.s'; // Change this to your Instagram username
+        const EXCLUSIVE_LINK = 'https://www.mediafire.com/file/2pdeh10v9u72prr/MODERN_AGE_MOD_APK_BY_TaylorGtps.apk/file'; // Change this to your actual link
+        
+        const INSTAGRAM_URL = `https://instagram.com/${INSTAGRAM_USERNAME}`;
+        let hasClickedFollow = false;
+
+        // Update the link and username in HTML
+        document.getElementById('exclusiveLink').href = EXCLUSIVE_LINK;
+        document.getElementById('exclusiveLink').textContent = EXCLUSIVE_LINK;
+        document.getElementById('igUsername').textContent = INSTAGRAM_USERNAME;
+
+        const checkingMessages = [
+            'Connecting to Instagram API...',
+            'Retrieving follower data...',
+            'Analyzing follow status...',
+            'Verifying account connection...',
+            'Cross-checking database...',
+            'Finalizing verification...'
+        ];
+
+        function followInstagram() {
+            window.open(INSTAGRAM_URL, '_blank');
+            hasClickedFollow = true;
+            
+            // Enable verify button after follow
+            document.getElementById('verifyBtn').disabled = false;
+            document.getElementById('warningBox').classList.remove('hidden');
+        }
+
+        async function verifyFollow() {
+            if (!hasClickedFollow) {
+                showError('Please click the Follow button first!');
+                return;
+            }
+
+            // Disable button during checking
+            document.getElementById('verifyBtn').disabled = true;
+            document.getElementById('followBtn').disabled = true;
+            
+            // Hide messages
+            document.getElementById('successMsg').classList.add('hidden');
+            document.getElementById('errorMsg').classList.add('hidden');
+            
+            // Show checking progress
+            document.getElementById('checkingProgress').classList.remove('hidden');
+            document.getElementById('lockIcon').classList.add('checking');
+            
+            // Simulate checking process
+            const progressFill = document.getElementById('progressFill');
+            const checkingText = document.getElementById('checkingText');
+            
+            let progress = 0;
+            let messageIndex = 0;
+            
+            const checkInterval = setInterval(() => {
+                progress += Math.random() * 20;
+                
+                if (progress > 100) progress = 100;
+                
+                progressFill.style.width = progress + '%';
+                
+                if (messageIndex < checkingMessages.length) {
+                    checkingText.textContent = checkingMessages[messageIndex];
+                    messageIndex++;
+                }
+                
+                if (progress >= 100) {
+                    clearInterval(checkInterval);
+                    
+                    // Random verification (80% success rate for realism)
+                    setTimeout(() => {
+                        const isVerified = Math.random() > 0.2; // 80% success
+                        
+                        if (isVerified) {
+                            unlockContent();
+                        } else {
+                            showError('Verification failed. Make sure you followed the account, then try again in 30 seconds.');
+                            document.getElementById('verifyBtn').disabled = false;
+                            document.getElementById('followBtn').disabled = false;
+                        }
+                        
+                        document.getElementById('checkingProgress').classList.add('hidden');
+                        document.getElementById('lockIcon').classList.remove('checking');
+                    }, 1000);
+                }
+            }, 400);
+        }
+
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMsg').classList.remove('hidden');
+            
+            setTimeout(() => {
+                document.getElementById('errorMsg').classList.add('hidden');
+            }, 5000);
+        }
+
+        function unlockContent() {
+            // Show success message
+            document.getElementById('successMsg').classList.remove('hidden');
+            
+            // Update title and subtitle
+            document.getElementById('mainTitle').innerHTML = '🎉 Content Unlocked!';
+            document.getElementById('subtitle').textContent = 'Thank you for your support! Here\'s your exclusive content:';
+            
+            // Change lock icon to unlocked
+            document.getElementById('lockIcon').classList.add('unlocked');
+            document.getElementById('lockSvg').innerHTML = `
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2c0-1.66 1.34-3 3-3s3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+            `;
+            
+            // Remove blur and unlock content
+            document.getElementById('blurOverlay').style.display = 'none';
+            document.getElementById('contentPreview').classList.add('unlocked');
+            
+            // Hide warning
+            document.getElementById('warningBox').classList.add('hidden');
+            
+            // Update buttons
+            document.getElementById('verifyBtn').classList.add('hidden');
+            document.getElementById('followBtn').innerHTML = `
+                <svg class="instagram-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
+                Visit Our Instagram Profile
+            `;
+            document.getElementById('followBtn').disabled = false;
+            document.getElementById('followBtn').onclick = function() {
+                window.open(INSTAGRAM_URL, '_blank');
+            };
+        }
+    </script>
+</body>
+</html>
