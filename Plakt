@@ -2,36 +2,62 @@ case ENET_EVENT_TYPE_CONNECT:
 {
     bool quit = false;
     
-    // Kirim packet hello/init terlebih dahulu
-    send_gt_packet(peer, 0);  // Hello packet
+    // Delay kecil sebelum memulai komunikasi
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     
-    // Tunggu sebentar
+    // 1. Kirim HELLO packet (type 0) - WAIT untuk sync awal
+    send_(peer, 0, nullptr, 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    
+    // 2. Kirim SERVER_INFO packet (type 1) - WAIT untuk info server
+    send_(peer, 1, nullptr, 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    
+    // 3. Kirim welcome message ke console
+    Algorithm::send_console(peer, "`2Connected to `wGeometry Private Server!``");
+    
+    // 4. Kirim LOGON packet untuk memulai sesi
+    const char* logon_data = "action|logon\n";
+    send_(peer, 2, (char*)logon_data, strlen(logon_data));
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     
-    // Kirim packet untuk memulai cache download
-    send_gt_packet(peer, 1);  // Cache info packet
+    // 5. Kirim SERVER_HELLO packet dengan data tambahan
+    const char* server_info = "server|" + server_name + "\nport|17091\ntype|1\n";
+    send_(peer, 3, (char*)server_info.c_str(), server_info.length());
     
-    // Kirim welcome message
-    const char* welcome_msg = "`2Connected to `wGeometry Private Server!``";
-    send_gt_packet(peer, 2, welcome_msg, strlen(welcome_msg));
+    // 6. Kirim CACHE_READY packet untuk memulai download cache
+    const char* cache_ready = "action|cache_ready\n";
+    send_(peer, 4, (char*)cache_ready, strlen(cache_ready));
     
-    // Set player data
+    // 7. Kirim WORLD_INFO packet
+    const char* world_info = "action|world_info\nname|" + default_world + "\n";
+    send_(peer, 5, (char*)world_info.c_str(), world_info.length());
+    
+    // Setup player data
     peer->data = new Player;
-    
     char clientConnection[16];
     string clientIP;
     enet_address_get_host_ip(&peer->address, clientConnection, 16);
     clientIP = clientConnection;
+    
     pInfo(peer)->id = peer->connectID;
     pInfo(peer)->ip = clientIP;
+    pInfo(peer)->connectTime = (duration_cast<milliseconds>(system_clock::now().time_since_epoch())).count();
     
-    // Ban check
+    printf("[CONNECT] New connection from %s (ID: %u)\n", clientIP.c_str(), peer->connectID);
+    
+    // Ban check - temporary bans
     vector<pair<string, long long int>>::iterator p = find_if(banned_ip_temporary.begin(), banned_ip_temporary.end(), 
         [&](const pair<string, long long int>& element) { return element.first == clientConnection; });
     
     if (p != banned_ip_temporary.end()) {
-        if (banned_ip_temporary[p - banned_ip_temporary.begin()].second + CONNECT_TIME > 
-            (duration_cast<milliseconds>(system_clock::now().time_since_epoch())).count()) {
+        long long banTime = banned_ip_temporary[p - banned_ip_temporary.begin()].second;
+        long long currentTime = (duration_cast<milliseconds>(system_clock::now().time_since_epoch())).count();
+        
+        if (banTime + CONNECT_TIME > currentTime) {
+            string ban_msg = "action|log\nmsg|CT:[S]_ `4You are temporarily banned. Time left: " + 
+                            std::to_string((banTime + CONNECT_TIME - currentTime) / 1000) + " seconds``";
+            packet_(peer, ban_msg, "");
             enet_peer_disconnect_later(peer, 0);
             quit = true;
         }
@@ -39,35 +65,71 @@ case ENET_EVENT_TYPE_CONNECT:
     
     if (quit) break;
     
-    // Login rate limiting
+    // Rate limiting system
     string error = "";
     int logged = 0;
-    if (login_time + 6500 < (duration_cast<milliseconds>(system_clock::now().time_since_epoch())).count()) {
+    long long currentTime = (duration_cast<milliseconds>(system_clock::now().time_since_epoch())).count();
+    
+    // Reset login counter setiap 6.5 detik
+    if (login_time + 6500 < currentTime) {
         login_count = 0;
-        login_time = (duration_cast<milliseconds>(system_clock::now().time_since_epoch())).count();
+        login_time = currentTime;
     }
     
+    // Cek jumlah koneksi dari IP yang sama
     if (login_count < 8) {
         for (ENetPeer* currentPeer = server->peers; currentPeer < &server->peers[server->peerCount]; ++currentPeer) {
-            if (currentPeer->state != ENET_PEER_STATE_CONNECTED || currentPeer->data == NULL || 
-                pInfo(peer)->ip != pInfo(currentPeer)->ip) 
+            if (currentPeer->state != ENET_PEER_STATE_CONNECTED || currentPeer->data == NULL) 
                 continue;
-            logged++;
+                
+            if (pInfo(currentPeer) && pInfo(peer)->ip == pInfo(currentPeer)->ip) {
+                logged++;
+            }
         }
     }
     
-    // Kirim packet tambahan untuk memaksa download
-    if (!quit) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        
-        // Packet untuk world data (type 3)
-        send_gt_packet(peer, 3);
-        
-        // Packet untuk item definitions (type 4)
-        send_gt_packet(peer, 4);
-        
-        printf("[CONNECT] New player connected: ID=%u, IP=%s\n", peer->connectID, clientConnection);
+    // Permanent IP bans
+    for (int i = 0; i < ipbans.size(); i++) {
+        if (pInfo(peer)->ip == ipbans[i]) {
+            error = "action|log\nmsg|CT:[S]_ `4Sorry, you are not allowed to enter the game from this device or location. Contact `1`o" + 
+                   server_name + "PS `5Discord Staff Team `4if you have any questions.";
+            break;
+        }
     }
     
+    // Rate limit check
+    if (logged >= 5 || login_count > 8) {
+        error = "action|log\nmsg|CT:[S]_ `4OOPS: Too many people logging into Geometry at once. Please press `5CANCEL` and try again in a few seconds.";
+    }
+    
+    // VPN/Proxy check (meta validation)
+    if (pInfo(peer)->ip != pInfo(peer)->meta && pInfo(peer)->meta != "") {
+        error = "action|log\nmsg|CT:[S]_ `4Can not make new account! Sorry, but IP " + pInfo(peer)->ip + 
+               " is not permitted to create NEW `o" + server_name + "PS accounts at this time. " +
+               "(This can be because there is an open proxy/VPN here or abuse from this IP) Please try again from another IP address.";
+    }
+    
+    // Send error and disconnect if any
+    if (!error.empty()) {
+        packet_(peer, error, "");
+        enet_peer_disconnect_later(peer, 0);
+        break;
+    }
+    
+    // Increment login counter
+    login_count++;
+    
+    // Kirim final setup packet setelah semua validasi lolos
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
+    // Kirim READY packet untuk memulai game
+    const char* ready_packet = "action|ready\n";
+    send_(peer, 6, (char*)ready_packet, strlen(ready_packet));
+    
+    // Kirim player list packet
+    const char* player_list = "action|player_list\n";
+    send_(peer, 7, (char*)player_list, strlen(player_list));
+    
+    printf("[SUCCESS] Player %s successfully connected and authenticated\n", clientIP.c_str());
     break;
 }
